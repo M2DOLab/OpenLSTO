@@ -176,11 +176,8 @@ void SensitivityAnalysis :: ComputeComplianceSensitivities (bool time_it) {
 
 				// Sensitivities (stress*strain).
                 stress_strain = Bu.transpose()*C*Bu;
-                //sensitivities[i].sensitivity_at_gauss_point[j] = -stress_strain(0,0)*(study.mesh.solid_elements[i].area_fraction);
-                //NB: I think the above equation is wrong (Sandy)
-
-                sensitivities[i].sensitivity_at_gauss_point[j] = -stress_strain(0,0);
-
+                sensitivities[i].sensitivity_at_gauss_point[j] = -stress_strain(0,0)*(study.mesh.solid_elements[i].area_fraction);
+                
         	}
         }
     }
@@ -656,7 +653,7 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
         {
             // Weight function by inverse distance.
             double lsweight = least_squares[i].area_fraction_at_gauss_point/least_squares[i].distance_from_gauss_point;
-	   
+
         switch (indicator) {
 
 	    case 0 : //default case, solve for sensitivity
@@ -671,13 +668,13 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
 	      B[0] += sensitivities[least_squares[i].element_number].sensitivity_component2_at_gauss_point[least_squares[i].gauss_point_number] * lsweight;
 	      break;
 
-	    }	          
-        
+	    }
+
         wgt  += lsweight;
         }
 
         B[0] /= wgt;
-        
+
     }
     else if(B[0] > Bmax){ B[0] = Bmax; }
     else if(B[0] < Bmin){ B[0] = Bmin; }

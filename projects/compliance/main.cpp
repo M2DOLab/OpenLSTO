@@ -48,7 +48,7 @@ int main () {
 	// fea_box contains the (x,y) coordinates of 4 corner points of rectangle containing the mesh:
 	MatrixXd fea_box(4,2);
 
-	fea_box <<   0.0,   0.0, 
+	fea_box <<   0.0,   0.0,
 					nelx,    0.0,
 					nelx, nely,
 					   0.0, nely;
@@ -307,6 +307,19 @@ int main () {
 	printf ("--------------------------------\n") ;
 	printf ("%8s %12s %10s\n", "Iteration", "Compliance", "Area") ;
 	printf ("--------------------------------\n") ;
+
+	// Create a directory name for output
+	system("mkdir -p results/history");
+	system("mkdir -p results/level_set");
+	system("mkdir -p results/area_fractions");
+	system("mkdir -p results/boundary_segments");
+
+	system("rm -f results/history/*.vtk results/history/*.txt");
+	system("rm -f results/level_set/*.vtk results/level_set/*.txt");
+	system("rm -f results/area_fractions/*.vtk results/area_fractions/*.txt");
+	system("rm -f results/boundary_segments/*.vtk results/boundary_segments/*.txt");
+
+
 
 	// Setup text file:
 	ofstream history_file ;
