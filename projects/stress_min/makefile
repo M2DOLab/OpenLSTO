@@ -54,14 +54,11 @@ $(M2DO_FEA_OBJ_DIR)/stationary_study.o: $(SRC_DIR)/stationary_study.cpp $(FEA_IN
 # Add your own makes here
 ###############################################################################
 # List of targets for executables you write
-TARGETS = 
+TARGETS = main
 main: lbeam.cpp $(M2DO_OBJ)
 	$(CC) $(CFLAGS) $(INCLUDES) -o ./bin/a.out lbeam.cpp $(M2DO_OBJ) $(LIBS)
-.PHONY: clean clean_obj clean_output
+.PHONY: clean clean_obj
 clean:
-	rm -f bin/a.out *~
+	rm -f $(TARGETS) *~
 clean_obj:
 	rm -f $(M2DO_OBJ)
-clean_output:
-	find ./results -name '*.vtk' -delete &&\
-find ./results -name '*.txt' -delete

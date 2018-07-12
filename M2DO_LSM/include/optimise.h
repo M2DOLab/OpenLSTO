@@ -22,6 +22,8 @@ public:
 
     void Solve_With_NewtonRaphson(); // function to calculate lambda_f
 
+    void Solve_LbeamStress_With_NewtonRaphson(double reduced_move_limit = 0.5); // function to calculate lambda_f for stress problem
+
     void get_lambdas(std::vector<double> &lambdas);
 
 private:

@@ -51,7 +51,7 @@ int main () {
 	// fea_box contains the (x,y) coordinates of 4 corner points of rectangle containing the mesh:
 	MatrixXd fea_box(4,2);
 
-	fea_box <<   0.0,   0.0, 
+	fea_box <<   0.0,   0.0,
 					nelx,    0.0,
 					nelx, nely,
 					   0.0, nely;
@@ -307,9 +307,9 @@ int main () {
 
 	// ----------------------------------------------------------
     // Define/Initialise parameters for hole insertion subroutine
-    vector <double> h_index(lsm_mesh.nNodes); 
+    vector <double> h_index(lsm_mesh.nNodes);
     vector <double> h_lsf(lsm_mesh.nNodes);
-    vector <bool> h_elem(lsm_mesh.nElements); 
+    vector <bool> h_elem(lsm_mesh.nElements);
     vector <M2DO_LSM::h_Node> h_Nsens(lsm_mesh.nNodes);
     vector <M2DO_LSM::h_Node> h_Nsens_Temp(lsm_mesh.nNodes);
     vector <M2DO_LSM::h_Element> h_Esens(lsm_mesh.nElements);
@@ -317,7 +317,7 @@ int main () {
     double holeCFL = 0.15;
     double lBand = 2.0;
     double h; // Size of level set element max (width, height)
-    double h_bar;  // artifitial height for setting secondary level set function 
+    double h_bar;  // artifitial height for setting secondary level set function
     bool h_flag = false;  //
     bool isHole = true; // Is hole inseration function active?
     double newHoleAreaLimit = 0.02;
@@ -338,6 +338,17 @@ int main () {
 	printf ("--------------------------------\n") ;
 	printf ("%8s %12s %10s\n", "Iteration", "Compliance", "Area") ;
 	printf ("--------------------------------\n") ;
+
+	// Create a directory name for output
+	system("mkdir -p results/history");
+	system("mkdir -p results/level_set");
+	system("mkdir -p results/area_fractions");
+	system("mkdir -p results/boundary_segments");
+
+	system("rm -f results/history/*.vtk results/history/*.txt");
+	system("rm -f results/level_set/*.vtk results/level_set/*.txt");
+	system("rm -f results/area_fractions/*.vtk results/area_fractions/*.txt");
+	system("rm -f results/boundary_segments/*.vtk results/boundary_segments/*.txt");
 
 	// Setup text file:
 	ofstream history_file ;
@@ -415,7 +426,7 @@ int main () {
 		*/
 
 		LSM::Optimise optimise (boundary.points, time_step, move_limit) ;
-		// LSM::Optimise optimise(boundary.points, constraint_distances, 
+		// LSM::Optimise optimise(boundary.points, constraint_distances,
 		// 						lambdas, time_step, move_limit, false, true);
 
 
@@ -444,7 +455,7 @@ int main () {
         //           1. Initialise nodes with a value to represent their           //
         //                artificial height, h_bar, in terms of element length, h  //
         //           2. Identify area/nodes that new holes can be inserted         //
-        //           3. Calculate nodal sensitivities using least square method    //        
+        //           3. Calculate nodal sensitivities using least square method    //
         //           4. Update the value of the secondary level set function for   //
         //                hole insertable nodes                                    //
         //           5. Check whether new hole should be inserted if corresponding //
@@ -491,7 +502,7 @@ int main () {
 	                sens.ComputeBoundarySensitivities(nPoint) ;
 
 	                // Assign sensitivities.
-	                h_Nsens_Temp[inode].sensitivities.resize(2); 
+	                h_Nsens_Temp[inode].sensitivities.resize(2);
 	                fill(h_Nsens_Temp[inode].sensitivities.begin(), h_Nsens_Temp[inode].sensitivities.end(), 0.0);
 
 	                h_Nsens_Temp[inode].sensitivities[0] = -sens.boundary_sensitivities[inode] ;
@@ -503,7 +514,7 @@ int main () {
 	            // 3.2 Calculate element sensitivities
 	            for (int iel = 0; iel < lsm_mesh.nElements; iel++ ) {
 
-	                h_Esens[iel].sensitivities.resize(2); 
+	                h_Esens[iel].sensitivities.resize(2);
 	                fill(h_Esens[iel].sensitivities.begin(), h_Esens[iel].sensitivities.end(), 0.0);
 	                for (int ind = 0; ind < 4; ind++) {
 	                    int inode;
@@ -516,9 +527,9 @@ int main () {
 	            // 3.3 Update nodal sensitivities
 	            // clear nodal sensitivity value
 	            for (int inode = 0; inode < lsm_mesh.nNodes; inode++ ) {
-	                h_Nsens[inode].sensitivities.resize(2); 
+	                h_Nsens[inode].sensitivities.resize(2);
 	                fill(h_Nsens[inode].sensitivities.begin(), h_Nsens[inode].sensitivities.end(), 0.0);
-	            } 
+	            }
 	            // re-assign nodal sensitivity value based on calculatd element sensitivities
 	            for (int iel = 0; iel < lsm_mesh.nElements; iel++ ) {
 	                for (int ind = 0; ind < 4; ind++) {
@@ -529,17 +540,17 @@ int main () {
 	                }
 	            }
 
-	            if (h_flag) {              
+	            if (h_flag) {
 	                //
-	                // Step 2. Initialise the secondary level set function after inserting new holes 
-	                // 
+	                // Step 2. Initialise the secondary level set function after inserting new holes
+	                //
 	                h_lsf.resize(lsm_mesh.nNodes); fill(h_lsf.begin(), h_lsf.end(), h_bar);//}
 	                get_h_lsf( lsm_mesh.nNodes, h_index, h_Nsens, lambdas, h_lsf );
 	                //initialise_hole_lsf(lsm_mesh, h_count, holeCFL, level_set, moveLimit, h_index, h_elem, h_Nsens, h_lsf, lambdas);
 	                h_flag = false;
-	            } else { 
+	            } else {
 	                //
-	                // Step 4. Update existing h_lsf when new hole has not yet been activated. 
+	                // Step 4. Update existing h_lsf when new hole has not yet been activated.
 	                //
 	                get_h_lsf( lsm_mesh.nNodes, h_index, h_Nsens, lambdas, h_lsf );
 	                //
@@ -547,12 +558,12 @@ int main () {
 	                //
 	                int inserted_hole_nodes = 0;
 	                for (int inode = 0; inode < lsm_mesh.nNodes; inode++ ) {
-	                    if ( (h_index[inode] ==1) && (h_lsf[inode] < 0) ) { 
+	                    if ( (h_index[inode] ==1) && (h_lsf[inode] < 0) ) {
 	                        if (!h_flag) {
 	                            cout << "\n\n--------------------------------------------\n";
 	                            cout << "  Hole will be inserted at ";
 	                        }
-	                        h_flag = true; 
+	                        h_flag = true;
 	                        inserted_hole_nodes ++;
 	                        //cout<< "\n" << inode << "\t" << h_lsf[inode] << "\t" << level_set.signedDistance[inode];
 	                     }
@@ -564,8 +575,8 @@ int main () {
 
 	                printf("\nThe area fraction corresponding to lsf and h_lsf are: %8.2f %8.2f %8.2f\n", boundary.area, area_lsf, area_h_lsf) ;
 
-	                //cout << "\n\nNumber of nodes to be set as new hole nodes: " << inserted_hole_nodes << endl;                
-	                
+	                //cout << "\n\nNumber of nodes to be set as new hole nodes: " << inserted_hole_nodes << endl;
+
 	                //
 	                // Step 6. Copy values of secondary level set function to primaray level set function
 	                //
@@ -590,7 +601,7 @@ int main () {
 	                        cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
 	                        cout << "     Too much material is removed. \n";
 	                        cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-	                        
+
 	                        // move up h_lsf untill the limit of the area of new holes to be inserted meeting the requirement
 	                        for (int inode = 0; inode < lsm_mesh.nNodes; inode++) {
 	                            h_lsf[inode] = h_lsf[inode] - 0.005*temp_min_h_lsf;
@@ -640,7 +651,7 @@ int main () {
 	                    fmm.march(level_set.signedDistance);
 
 	                    // io.savelevel_setVTK(9003, level_set) ;
-	                    
+
 	                    // cout << "\nhe area fraction corresponding to lsf after stretching is: " << LSM::Boundary_hole(level_set,&level_set.signedDistance).computeAreaFractions() << endl;
 
 	                }
@@ -651,7 +662,7 @@ int main () {
 	        }
 
         }
-	        
+
 
 		////////////////////////////////////////////////////////////////////////////
 
