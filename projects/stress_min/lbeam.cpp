@@ -260,7 +260,6 @@ int main () {
   uint max_iter = 500;              // maximum number of iterations
   double max_area = 0.4;            // maximum material area
   bool is_max = false;              // maximization problem?
-  bool is_capped = true;            // cap displacements?
   double mesh_area = lsm_mesh.width * lsm_mesh.height
     - pow(double(lsm_mesh.width)*3/5, 2); // LSM mesh area
   double max_diff = 0.001;          // max relative difference for convergence
