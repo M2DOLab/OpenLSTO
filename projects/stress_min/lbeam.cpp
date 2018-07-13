@@ -141,7 +141,6 @@ int main () {
 
   int sens_type = 1; // type of sensitivity being calcuated. 0 is compliance, 1
                      //is stress
-  double min_area_fraction = 0.1; // minimum element area to compute sensitvity
   double least_sq_radius = 2.0; //setting least square calculation to 2.0 grid
                                 //spaces
 
@@ -258,7 +257,7 @@ int main () {
   */
 
   // Define/declare parameters needed for optimization loop
-  uint max_iter = 200;              // maximum number of iterations
+  uint max_iter = 500;              // maximum number of iterations
   double max_area = 0.4;            // maximum material area
   bool is_max = false;              // maximization problem?
   bool is_capped = true;            // cap displacements?
@@ -287,18 +286,21 @@ int main () {
     Set up output files/headers
   */
 
+  // Create directories for output if they don't already exist
+  system("mkdir -p results/history");
+  system("mkdir -p results/level_set");
+  system("mkdir -p results/area_fractions");
+  system("mkdir -p results/boundary_segments");
+
+  // Remove any existing files from output directories
+  system("find ./results -type f -name '*.txt' -delete");
+  system("find ./results -type f -name '*.vtk' -delete");
+  
   // Define precision for output file
   uint txt_precision = 16;
 
-  // make a directory
-  system("mkdir -p output");
-  system("rm -f output/*.vtk");
-
-  // Directory for output files
-  string file_directory = "output/";
-
   // Set up iteration history text file
-  string txt_file_name = file_directory + "convergenceHistory.txt";
+  string txt_file_name = "results/history/history.txt";
 
   remove(txt_file_name.c_str());
 
@@ -309,8 +311,8 @@ int main () {
 
   // Initialize input/output object
   LSM::InputOutput io;
-  io.saveLevelSetVTK(count_iter, level_set, false, false, file_directory);
-  io.saveAreaFractionsVTK(count_iter, lsm_mesh, file_directory);
+  io.saveLevelSetVTK(count_iter, level_set, false, false, "results/level_set");
+  io.saveAreaFractionsVTK(count_iter, lsm_mesh, "results/area_fractions");
 
   cout << "\nStarting stress minimization...\n" << endl;
 
@@ -352,7 +354,7 @@ int main () {
     fea_study.SolveWithCG();
 
     // Compute sensitivities at the Gauss points.
-    sens.ComputeStressSensitivities(false, p_norm); //, area_min);
+    sens.ComputeStressSensitivities(false, p_norm);
 
     // Initalize variable for largest (absolute) boundary pt sensitivity
     double abs_bsens_max = 0.0;
@@ -457,8 +459,9 @@ int main () {
 	     << relative_difference << "\n";
 
     // Write level set to file.
-    io.saveLevelSetVTK(count_iter, level_set, false, false, file_directory);
-    io.saveAreaFractionsVTK(count_iter, lsm_mesh, file_directory);
+    io.saveLevelSetVTK(count_iter, level_set, false, false, "results/level_set");
+    io.saveAreaFractionsVTK(count_iter, lsm_mesh, "results/area_fractions");
+    io.saveBoundarySegmentsTXT(count_iter, boundary, "results/boundary_segments");
 
     if ((relative_difference <= 0.0005) & (area <= 1.001 * max_area)) break;
 

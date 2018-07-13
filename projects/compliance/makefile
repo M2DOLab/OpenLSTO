@@ -56,12 +56,13 @@ $(M2DO_FEA_OBJ_DIR)/stationary_study.o: $(SRC_DIR)/stationary_study.cpp $(FEA_IN
 # List of targets for executables you write
 TARGETS =
 main: main.cpp $(M2DO_OBJ)
+	mkdir -p bin
 	$(CC) $(CFLAGS) $(INCLUDES) -o ./bin/a.out main.cpp $(M2DO_OBJ) $(LIBS)
 .PHONY: clean clean_obj clean_output
 clean:
 	rm -f bin/a.out *~
 clean_obj:
 	rm -f $(M2DO_OBJ)
-clean_output:
-	find ./results -name '*.vtk' -delete  &&\
-find ./results -name '*.txt' -delete
+clean_results:
+	find ./results -name '*.vtk' -delete
+	find ./results -name '*.txt' -delete

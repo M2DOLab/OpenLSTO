@@ -339,17 +339,16 @@ int main () {
 	printf ("%8s %12s %10s\n", "Iteration", "Compliance", "Area") ;
 	printf ("--------------------------------\n") ;
 
-	// Create a directory name for output
+	// Create directories name for output if they don't already exist
 	system("mkdir -p results/history");
 	system("mkdir -p results/level_set");
 	system("mkdir -p results/area_fractions");
 	system("mkdir -p results/boundary_segments");
 
-	system("rm -f results/history/*.vtk results/history/*.txt");
-	system("rm -f results/level_set/*.vtk results/level_set/*.txt");
-	system("rm -f results/area_fractions/*.vtk results/area_fractions/*.txt");
-	system("rm -f results/boundary_segments/*.vtk results/boundary_segments/*.txt");
-
+	// Remove any existing files from output directories
+	system("find ./results -type f -name '*.txt' -delete");
+	system("find ./results -type f -name '*.vtk' -delete");
+	
 	// Setup text file:
 	ofstream history_file ;
 	history_file.open ("results/history/history.txt", ios_base::app) ;

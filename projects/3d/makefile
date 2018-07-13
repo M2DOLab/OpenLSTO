@@ -1,5 +1,6 @@
 CC = g++
 CFLAGS = -std=c++14 -Wall -g -fopenmp -w -O3
+
 # CHANGE TO directory where FEA and LSM include folders are
 # parent directory for FEA files
 # parent directory for FEA files
@@ -56,6 +57,7 @@ $(M2DO_FEA_OBJ_DIR)/stationary_study.o: $(SRC_DIR)/stationary_study.cpp $(FEA_IN
 # List of targets for executables you write
 TARGETS = 
 main: main.cpp $(M2DO_OBJ)
+	mkdir -p bin
 	$(CC) $(CFLAGS) $(INCLUDES) -o ./bin/a.out main.cpp $(M2DO_OBJ) $(LIBS)
 .PHONY: clean clean_obj
 clean:
