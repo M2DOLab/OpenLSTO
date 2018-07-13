@@ -177,7 +177,7 @@ void SensitivityAnalysis :: ComputeComplianceSensitivities (bool time_it) {
 				// Sensitivities (stress*strain).
                 stress_strain = Bu.transpose()*C*Bu;
                 sensitivities[i].sensitivity_at_gauss_point[j] = -stress_strain(0,0)*(study.mesh.solid_elements[i].area_fraction);
-                
+
         	}
         }
     }
@@ -242,6 +242,8 @@ void SensitivityAnalysis :: ComputeStressSensitivities (bool time_it, double pno
             strains[i].von_mises[j] = 0.0;
         }
     }
+
+
 
     // Initializing adjoint vector with zeros (then it will be assembled for each element pseudo-load).
     int n_dof = study.dirichlet_boundary_conditions.mesh_n_dof;
@@ -322,6 +324,7 @@ void SensitivityAnalysis :: ComputeStressSensitivities (bool time_it, double pno
                 if (study.mesh.solid_elements[i].area_fraction*Tvm > von_mises_max)
                 { von_mises_max = study.mesh.solid_elements[i].area_fraction*Tvm; }
             }
+
 
             // Adjoint force vector.
             lambda_i = -pnorm*pow(Tvm,pnorm-2)*CB.transpose()*Voigt*CBu;
@@ -409,6 +412,222 @@ void SensitivityAnalysis :: ComputeStressSensitivities (bool time_it, double pno
 
     }
 }
+
+void SensitivityAnalysis :: ComputeStressSensitivities3D (bool time_it, double pnorm ) {
+
+  //Same as 2D stress sensitivities, except for 3d
+    double qnorm = pnorm;
+    double area_min = 0.0;
+
+    auto t_start = chrono::high_resolution_clock::now() ;
+
+    if (time_it) {
+
+        cout << "\nComputing stress sensitivities ... " << flush ;
+
+    }
+
+    // DECLARING VARIABLES AND RESIZING VECTORS
+
+    // Scalars and vectors
+    int number_of_elements = study.mesh.solid_elements.size(); // Total number of elements
+    int number_of_gauss_points = pow(order,spacedim); // Total number of gauss points
+    vector<double> eta(spacedim,0), eta_count(spacedim,0); // Vector of gauss points
+    VectorXd element_displacements = VectorXd::Zero(pow(2,spacedim)*spacedim); // Vector of element displacements
+    VectorXd adjoint_displacements = VectorXd::Zero(pow(2,spacedim)*spacedim); // Vector of adjoint displacements
+    vector<int> dof; // Vector with dofs
+
+    // Stress*strain matrices.
+    vector<MatrixXd> B;
+    B.resize(number_of_gauss_points);
+    MatrixXd Bu = MatrixXd::Zero(pow(spacedim,spacedim), 1);
+    MatrixXd Bu_adj = MatrixXd::Zero(pow(spacedim,spacedim), 1);
+    MatrixXd CBu = MatrixXd::Zero(spacedim*spacedim, 1);
+    MatrixXd CB = Eigen::MatrixXd::Zero(pow(spacedim,spacedim), pow(2,spacedim)*spacedim); // and C*B
+    MatrixXd stress_strain_adj;
+    MatrixXd Tvm2, lambda_i;
+    double Tvm;
+
+    // Integral of B.
+    MatrixXd B_int = study.mesh.solid_elements[0].B_int();
+
+    // Resizing strain vector.
+    strains.resize(number_of_elements);
+
+    // Quadrature object.
+    GaussianQuadrature  quadrature (spacedim, order) ;
+
+    // Initializing adjoint vector with zeros (then it will be assembled for each element pseudo-load).
+    int n_dof = study.dirichlet_boundary_conditions.mesh_n_dof;
+    study.f_i = VectorXd::Zero(n_dof);
+    // Number of dofs for reduced matrix (after Dirichlet BC's).
+    int n_dof_reduced = study.dirichlet_boundary_conditions.mesh_n_dof - study.dirichlet_boundary_conditions.dof.size();
+    study.f_i_reduced = VectorXd::Zero(n_dof_reduced); // Initializing adjoint pseudo-load vector.
+
+
+    // FUNCTION BODY
+
+    // Computing strain-displacement matrices.
+    for (int j = 0; j < number_of_gauss_points; j++)
+    {
+        // Selecting Gauss points.
+        for (int k = 0 ; k < spacedim; k++)
+        {
+            eta[k]  = quadrature.eta[eta_count[k]];
+        }
+
+        // Strain-displacement matrix at Gauss point.
+        B[j] = study.mesh.solid_elements[0].B(eta);
+
+        // Update eta counter (to select next group of Gauss points).
+        eta_count = quadrature.UpdateEtaCounter(eta_count);
+    }
+
+
+    // Elasticity tensor.
+    MatrixXd C = study.mesh.solid_materials[0].C ;
+
+    // Voigt matrix.
+    MatrixXd Voigt = study.mesh.solid_materials[0].V;
+
+    // Element volume.
+    // double volume = study.mesh.solid_elements[0].V();
+
+    // Initializing objective.
+    objective = 0.0;
+
+    // Initializing maximum stress.
+    von_mises_max = 0.0;
+
+    // For each element (compute von Mises stress and pseudo-load).
+    for (int i = 0; i < number_of_elements; i++)
+    {
+        // Check if the element is out of the domain or not.
+        if (study.mesh.solid_elements[i].area_fraction < area_min) // Out.
+        {
+            // Do nothing.
+        }
+        else // In.
+        {
+            // Element dofs
+            dof = study.mesh.dof(study.mesh.solid_elements[i].node_ids);
+
+            // Selecting element displacements.
+            for (int j = 0 ; j < dof.size() ; j++)
+            {
+                element_displacements(j) = study.u(dof[j]);
+            }
+
+            MatrixXd Tvmmat_avg = (C * (B_int *element_displacements ) ).transpose() * Voigt * (  C * (B_int *element_displacements )  );
+
+
+
+            // for each gauss point
+            for (int j = 0; j < number_of_gauss_points; j++)
+            {
+              // Define Tvm
+              MatrixXd Tvmmat = (C * (B[j] *element_displacements ) ).transpose() * Voigt * (  C * (B[j] *element_displacements )  );
+              Tvm = sqrt(Tvmmat(0,0));
+
+              // Adjoint force vector.
+              lambda_i = pow(study.mesh.solid_elements[i].area_fraction  , qnorm )*pnorm*pow(Tvm,pnorm-2)* ( (C*B[j]).transpose() * Voigt * C) *(B[j] *element_displacements );
+
+              // Asemble adjoint force vector.
+              study.AssembleF_i(lambda_i, dof, false);
+
+              objective += pow(study.mesh.solid_elements[i].area_fraction  , qnorm )*pow(Tvm , pnorm )/number_of_gauss_points ;
+
+              if ( Tvm*study.mesh.solid_elements[i].area_fraction > von_mises_max)
+              { von_mises_max = Tvm*study.mesh.solid_elements[i].area_fraction ; }
+
+
+            }
+
+        }
+    }
+
+
+
+    // Objective (p-norm function).
+    objective = pow(objective,1.0/pnorm);
+
+    // Solve adjoint equation.
+    study.SolveWithCG_f_i () ;
+
+    // For each element i
+    for (int i = 0; i < number_of_elements; i++)
+    {
+
+      strains[i].von_mises_average = 0.0; // Stresses.
+
+        // If the element is too soft (very small area fraction)
+        if (study.mesh.solid_elements[i].area_fraction < area_min)
+        {
+            // For each gauss point
+            for (int j = 0; j < number_of_gauss_points; j++)
+            {
+                // Sensitivity is not computed and set as zero
+                sensitivities[i].sensitivity_at_gauss_point[j] = 0.0;
+
+                // components of the sensitivities
+                sensitivities[i].sensitivity_component1_at_gauss_point[j] = 0.0;
+                sensitivities[i].sensitivity_component2_at_gauss_point[j] = 0.0 ;
+                sensitivities[i].sensitivity_component3_at_gauss_point[j] = 0.0 ;
+            }
+        }
+        // If the element has significant area fraction
+        else
+        {
+            // Element dofs
+            dof = study.mesh.dof(study.mesh.solid_elements[i].node_ids) ;
+
+            // Selecting element displacements
+            for (int j = 0 ; j < dof.size(); j++)
+            {
+                element_displacements(j) = study.u(dof[j]) ;
+                adjoint_displacements(j) = study.u_i(dof[j]);
+            }
+
+            // For each Gauss point
+            for (int j = 0; j < number_of_gauss_points; j++)
+            {
+                // C*B*u at point eta.
+                CBu = C*B[j]*element_displacements;
+                Bu_adj = B[j]*adjoint_displacements;
+
+                // Stress(mechanical)*strain(adjoint)
+                MatrixXd stress_strain_adj = CBu.transpose()*Bu_adj;
+
+                // Define Tvm
+                MatrixXd Tvmmat = (C * (B[j] *element_displacements) ).transpose() * Voigt * (  C * (B[j] *element_displacements )  );
+                Tvm = sqrt(Tvmmat(0,0));
+
+                // Sensitivities (stress*strain).
+                MatrixXd stress_strain_mat_me = Bu_adj.transpose()*CBu ;
+
+                // sensitivities at the gauss point
+                sensitivities[i].sensitivity_at_gauss_point[j] = - stress_strain_mat_me(0,0) +
+                pow(Tvm , pnorm)*pow(study.mesh.solid_elements[i].area_fraction  , qnorm - 1)*qnorm;
+
+                // components of the sensitivities
+                sensitivities[i].sensitivity_component1_at_gauss_point[j] = Tvm * pow(study.mesh.solid_elements[i].area_fraction  , 1.0*(qnorm - 1)/(1.0*pnorm)) * pow(qnorm , 1.0/(1.0*pnorm) );
+                sensitivities[i].sensitivity_component2_at_gauss_point[j] = stress_strain_mat_me(0,0) ;
+
+                strains[i].von_mises_average += study.mesh.solid_elements[i].area_fraction*Tvm/number_of_gauss_points; // Stresses.
+
+            }
+        }
+    }
+
+    auto t_end = chrono::high_resolution_clock::now() ;
+
+    if (time_it) {
+
+        cout << "Done. Time elapsed = " << chrono::duration<double>(t_end-t_start).count() << "\n" << flush ;
+
+    }
+}
+
 
 
 // LEAST SQUARES FUNCTIONALITIES
@@ -529,12 +748,13 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
     // Selecting size according to dimensionality of the problem.
     int n = basis[spacedim-2];
 
-    // Declaring variables.
-    double A[n*number_of_gauss_points];
-    double B[number_of_gauss_points];
-    double Bmin = -1e96;
-    double Bmax = 1e96;
+    //initialize sensitivity
     double sens;
+
+    std::vector<std::vector<double>> A_dash(number_of_gauss_points);
+    for(int i = 0; i< number_of_gauss_points; i++) A_dash[i].resize(n,0.0);
+
+    std::vector<double> B_dash(number_of_gauss_points,0.0);
 
     // Building least squares problem.
     if (spacedim == 2) // For 2D interpolation.
@@ -549,12 +769,14 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
             double yb = least_squares[i].coordinate[1] - boundary_point[1];
 
             // Storing weighted distances information.
-            A[i] = lsweight;
-            A[number_of_gauss_points + i] = xb * lsweight;
-            A[(2*number_of_gauss_points) + i] = yb * lsweight;
-            A[(3*number_of_gauss_points) + i] = xb * yb * lsweight;
-            A[(4*number_of_gauss_points) + i] = xb * xb * lsweight;
-            A[(5*number_of_gauss_points) + i] = yb * yb * lsweight;
+
+            A_dash[i][0] = lsweight;
+            A_dash[i][1] = xb * lsweight;
+            A_dash[i][2] = yb * lsweight;
+            A_dash[i][3] = xb * yb * lsweight;
+            A_dash[i][4] = xb * xb * lsweight;
+            A_dash[i][5] = yb * yb * lsweight;
+
 
 
             // Sensitivity at the current point.
@@ -579,10 +801,8 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
 	    }
 
             // Storing weighted sensitivity.
-            B[i] = sens*lsweight;
 
-            if (sens > Bmax) Bmax = sens;
-            else if (sens < Bmin) Bmin = sens;
+            B_dash[i] = sens*lsweight;
         }
     }
     else if (spacedim == 3) // For 3D interpolation.
@@ -598,89 +818,126 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
             double zb = least_squares[i].coordinate[2] - boundary_point[2];
 
             // Storing weighted distances information.
-            A[i] = lsweight;
-            A[number_of_gauss_points + i] = xb * lsweight;
-            A[(2*number_of_gauss_points) + i] = yb * lsweight;
-            A[(3*number_of_gauss_points) + i] = zb * lsweight;
-            A[(4*number_of_gauss_points) + i] = xb * yb * lsweight;
-            A[(5*number_of_gauss_points) + i] = xb * zb * lsweight;
-            A[(6*number_of_gauss_points) + i] = yb * zb * lsweight;
-            A[(7*number_of_gauss_points) + i] = xb * xb * lsweight;
-            A[(8*number_of_gauss_points) + i] = yb * yb * lsweight;
-            A[(9*number_of_gauss_points) + i] = zb * zb * lsweight;
+            A_dash[i][0] = lsweight;
+            A_dash[i][1] = xb * lsweight;
+            A_dash[i][2] = yb * lsweight;
+            A_dash[i][3] = zb * lsweight;
 
-            // Sensitivity at the current point.
-            sens = sensitivities[least_squares[i].element_number].sensitivity_at_gauss_point[least_squares[i].gauss_point_number];
+            A_dash[i][4] = xb * yb * lsweight;
+            A_dash[i][5] = xb * zb * lsweight;
+            A_dash[i][6] = yb * zb * lsweight;
+
+            A_dash[i][7] = xb * xb * lsweight;
+            A_dash[i][8] = yb * yb * lsweight;
+            A_dash[i][9] = zb * zb * lsweight;
+
+            switch (indicator) {
+
+            case 0 : //default case, solve for sensitivity
+              sens = sensitivities[least_squares[i].element_number].sensitivity_at_gauss_point[least_squares[i].gauss_point_number];
+              break;
+
+            case 1 : // solve for first component of sensitivity
+              sens = sensitivities[least_squares[i].element_number].sensitivity_component1_at_gauss_point[least_squares[i].gauss_point_number];
+              break;
+
+            case 2 : // solve for second component of sensitivity
+      	      sens = sensitivities[least_squares[i].element_number].sensitivity_component2_at_gauss_point[least_squares[i].gauss_point_number];
+      	      break;
+
+            }
 
             // Storing weighted sensitivity.
-            B[i] = sens*lsweight;
 
-            if (sens > Bmax) Bmax = sens;
-            else if (sens < Bmin) Bmin = sens;
+            B_dash[i] = sens*lsweight;
+
         }
     }
 
-    // SOLVE LEAST SQUARES WITH LAPACK
+    // Solve Least Squares without LAPACK
+    // step 1 compute A'*A
 
-    // Auxiliary variables.
-    int m = number_of_gauss_points, nrhs = 1, lda = number_of_gauss_points, ldb = number_of_gauss_points, info, lwork;
-    double wkopt;
-    double* work;
+    int num_pts = number_of_gauss_points ;
+    int basis_pts = n;
 
-    // Executable statements.
-    // Query and allocate the optimal workspace.
-    lwork = -1;
-    dgels_("No transpose", &m, &n, &nrhs, A, &lda, B, &ldb, &wkopt, &lwork, &info);
+    std::vector<std::vector<double>> AtA;
+    AtA.resize(basis_pts);
+    for(int i = 0; i< basis_pts; i++) AtA[i].resize(basis_pts,0.0);
 
-    // Allocating memory.
-    lwork = (int)wkopt;
-    work = (double*)malloc( lwork*sizeof(double) );
-
-    // Solve equations A*X = B (B is overwritten with the solution X).
-    dgels_("No transpose", &m, &n, &nrhs, A, &lda, B, &ldb, work, &lwork, &info);
-    free(work);
-
-    double abmax = (Bmax > 0.0) ? 10.0*Bmax : 0.1*Bmax;
-    double abmin = (Bmin < 0.0) ? 10.0*Bmin : 0.1*Bmin;
-
-    // Use weighted average.
-    if(B[0] > abmax || B[0] < abmin)
+    for(int i = 0; i < basis_pts; i++)
     {
-        B[0] = 0.0;
-        double wgt = 0.0;
+      for(int j = 0; j < basis_pts; j++)
+      {
 
-        for (int i = 0; i < number_of_gauss_points; i++)
+        for(int ii = 0; ii < num_pts; ii++)
         {
-            // Weight function by inverse distance.
-            double lsweight = least_squares[i].area_fraction_at_gauss_point/least_squares[i].distance_from_gauss_point;
+          AtA[i][j] += A_dash[ii][i]*A_dash[ii][j];
 
-        switch (indicator) {
-
-	    case 0 : //default case, solve for sensitivity
-	      B[0] += sensitivities[least_squares[i].element_number].sensitivity_at_gauss_point[least_squares[i].gauss_point_number] * lsweight;
-	      break;
-
-	    case 1 : // solve for first component of sensitivity
-	      B[0] += sensitivities[least_squares[i].element_number].sensitivity_component1_at_gauss_point[least_squares[i].gauss_point_number] * lsweight;
-	      break;
-
-	    case 2 : // solve for second component of sensitivity
-	      B[0] += sensitivities[least_squares[i].element_number].sensitivity_component2_at_gauss_point[least_squares[i].gauss_point_number] * lsweight;
-	      break;
-
-	    }
-
-        wgt  += lsweight;
         }
 
-        B[0] /= wgt;
+      }
 
     }
-    else if(B[0] > Bmax){ B[0] = Bmax; }
-    else if(B[0] < Bmin){ B[0] = Bmin; }
 
-    // Sensitivity at boundary point.
-    sens = B[0];
+    // step 2 compute A'*B in vector format
+    std::vector<double> AtB(basis_pts,0.0);
+
+    for(int i = 0; i < basis_pts; i++)
+    {
+      for(int ii = 0; ii < num_pts; ii++)
+      {
+        AtB[i] += A_dash[ii][i]*B_dash[ii];
+      }
+    }
+
+    // step 3 compute (A'A)X = A'B using CG
+
+
+    // initialize every thing here
+
+    int matrix_size = basis_pts;
+
+    std::vector<double> X(matrix_size,0.0);
+    std::vector<double> r_inhouse = AtB; // residual
+
+    std::vector<double> p_inhouse = r_inhouse; // direction vector
+    double alpha = 0.0;
+    double beta = 1.0;
+
+    int max_iter = matrix_size;
+
+
+    for(int iter = 0; iter < max_iter; iter++)
+    {
+      std::vector<double> AtAp(matrix_size,0.0);
+      AtAp = mat_vec_mult(AtA,p_inhouse); // AtA*p
+
+      alpha = vec_vec_mult(r_inhouse,r_inhouse)/ vec_vec_mult(p_inhouse, AtAp) ;
+
+      for(int i = 0; i < matrix_size; i++) X[i] += alpha*p_inhouse[i];
+
+      beta = 1.0/vec_vec_mult(r_inhouse,r_inhouse);
+
+      for(int i = 0; i < matrix_size; i++) r_inhouse[i] -= alpha*AtAp[i];
+
+      beta *= vec_vec_mult(r_inhouse,r_inhouse);
+
+      for(int i = 0; i < matrix_size; i++) p_inhouse[i] = r_inhouse[i] + beta*p_inhouse[i];
+
+    }
+
+    if(isnan(X[0]))
+    {
+      sens = 0.0;
+    }
+    else
+    {
+      sens =  X[0];
+    }
+
+
+
+
 
     return sens;
 
@@ -770,4 +1027,32 @@ void SensitivityAnalysis :: WriteAverageSensitivitiesTxt (int datapoint, int num
 
   fclose(print_file);
 
+}
+
+// this function multiplies the sparse matrix with a vector
+std::vector<double> SensitivityAnalysis ::mat_vec_mult( std::vector<std::vector<double>> &AtA, std::vector<double> &v_in )
+{
+  // initialze output to a vector of zeros
+  std::vector<double> v_out(v_in.size(),0.0);
+	//#pragma omp parallel num_threads(4)
+  for(int i = 0; i < v_in.size(); i++)
+	{
+    for(int j = 0; j < v_in.size(); j++)
+  	{
+      v_out[i] += AtA[i][j]*v_in[j];
+    }
+
+	}
+  return v_out;
+}
+
+// this function multiplies the sparse ve
+double SensitivityAnalysis ::vec_vec_mult( std::vector<double> &v_in1, std::vector<double> &v_in2 )
+{
+  // initialze output to a vector of zeros
+  double result = 0.0;
+
+  for(int i = 0; i < v_in1.size(); i++)  result += v_in1[i]*v_in2[i];
+
+  return result;
 }
