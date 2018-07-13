@@ -1,3 +1,5 @@
 *.vtk
 *.txt
 *.o
+projects/*/bin
+projects/*/results
