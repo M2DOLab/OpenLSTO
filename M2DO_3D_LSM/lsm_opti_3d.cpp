@@ -93,7 +93,7 @@ void PerformOptimization ( SensitivityData &SensData) {
 
   for (int i = 0 ; i < bpointsize ; ++i)
   {
-    //sf[i] = sf[i]/abssens;
+    sf[i] = sf[i]/abssens;
     cf.push_back(sf[i]*areavector[i]);
     cg.push_back(sg[i]*areavector[i]);
 
@@ -181,7 +181,7 @@ void PerformOptimization ( SensitivityData &SensData) {
 
 
 
-      if(std::abs(new_vol0 - target_vol) < 1.0E-5) break;
+      if(std::abs(new_vol0 - target_vol)/target_vol < 1.0E-3) break;
     }
 
 
@@ -232,7 +232,7 @@ void PerformOptimization ( SensitivityData &SensData) {
 
 }
 
-void PerformOptimization_LBeam ( SensitivityData &SensData) {
+void PerformOptimization_Stress_LBeam ( SensitivityData &SensData) {
 
   // number of elements in x, y, and z directions
   double nx = SensData.nx;
@@ -341,7 +341,7 @@ void PerformOptimization_LBeam ( SensitivityData &SensData) {
 
     double lambda_g = move_limit;
 
-    double percent_vol = 0.5; // delta_area will be 50 percent of maximum area
+    double percent_vol = 0.25; // delta_area will be 50 percent of maximum area
 
     double target_vol = Vol;
     for(int i = 0; i<cg.size(); i++){
@@ -358,7 +358,9 @@ void PerformOptimization_LBeam ( SensitivityData &SensData) {
 
     // compute domain distance (distance from the FE domain)
 
-    std::vector<double> domain_distance_vector(bpointsize,0.0);
+    std::vector<double> upper_bound_vector(bpointsize,0.0);
+    std::vector<double> lower_bound_vector(bpointsize,0.0);
+
     for (int i = 0; i < bpointsize; i++)
     {
       curpt[0] = bPointArr[3*i];
@@ -371,7 +373,7 @@ void PerformOptimization_LBeam ( SensitivityData &SensData) {
 
       {
         // this region is the top right quadrant
-        double domdista = std::min({( curpt[0] - 1.0*nx1),( curpt[2] - 1.0*nz1)  });
+        double domdista = std::min({( curpt[0] - 1.0*nx1),( curpt[2] - 1.0*nz1)  , curpt[1] , -curpt[1] + 1.0*ny  });
 
         domdista = -1.0*domdista;
 
@@ -379,23 +381,14 @@ void PerformOptimization_LBeam ( SensitivityData &SensData) {
 
       }
 
-      //domdist = std::min({ std::abs( curpt[0] - 0.0),std::abs( curpt[0] - nx),std::abs( curpt[1] - 0.0),std::abs( curpt[1] - ny),std::abs( curpt[2] - 0.0),std::abs( curpt[2] - nz)  });
-
-      domain_distance_vector[i] = domdist;
-
-      if( std::abs(curpt[0] - nx1) + std::abs(curpt[2] - nz1) < 2.1)
-      {
-        //cout << " corner: " << curpt[0] << " , " << curpt[2] << "; domdist = " << domdist << endl;
-      }
-
-
-      //cout << " pt: " << curpt[0] << " , " <<  curpt[1] << " , "  << curpt[2] << "; domdist = " << domdist << endl;
+      upper_bound_vector[i] = std::min(domdist , move_limit);
+      lower_bound_vector[i] = -move_limit;
 
 
     }
 
     double lambda_0 = 0.0;
-    double delta_lambda = 0.01;
+    double delta_lambda = 0.1;
     double lambda_cur;
     double new_vol;
 
@@ -410,21 +403,27 @@ void PerformOptimization_LBeam ( SensitivityData &SensData) {
       // compute new area
       double new_vol0 = Vol;
       for(int i = 0; i<cg.size(); i++){
-        new_vol0 -= cg[i]*std::min( domain_distance_vector[i], lambda_g*sg[i] + lambda_cur*sf[i] );
+        double z_i = std::min( upper_bound_vector[i], lambda_g*sg[i] + lambda_cur*sf[i] ) ;
+        z_i = std::max( lower_bound_vector[i],z_i ) ;
+        new_vol0 -= cg[i]*z_i;
       }
 
       lambda_cur = lambda_0 + delta_lambda;
       // compute new area
       double new_vol2 = Vol;
       for(int i = 0; i<cg.size(); i++){
-        new_vol2 -= cg[i]*std::min( domain_distance_vector[i], lambda_g*sg[i] + lambda_cur*sf[i] );
+        double z_i = std::min( upper_bound_vector[i], lambda_g*sg[i] + lambda_cur*sf[i] ) ;
+        z_i = std::max( lower_bound_vector[i],z_i ) ;
+        new_vol2 -= cg[i]*z_i;
       }
 
       lambda_cur = lambda_0 - delta_lambda;
       // compute new area
       double new_vol1 = Vol;
       for(int i = 0; i<cg.size(); i++){
-        new_vol1 -= cg[i]*std::min( domain_distance_vector[i], lambda_g*sg[i] + lambda_cur*sf[i] );
+        double z_i = std::min( upper_bound_vector[i], lambda_g*sg[i] + lambda_cur*sf[i] ) ;
+        z_i = std::max( lower_bound_vector[i],z_i ) ;
+        new_vol1 -= cg[i]*z_i;
       }
 
       double slope = (new_vol2 - new_vol1)/ 2 / delta_lambda;
@@ -433,7 +432,7 @@ void PerformOptimization_LBeam ( SensitivityData &SensData) {
 
 
 
-      if(std::abs(new_vol0 - target_vol) < 1.0E-5) break;
+      if(std::abs(new_vol0 - target_vol)/target_vol < 1.0E-3) break;
     }
 
 
@@ -451,7 +450,10 @@ void PerformOptimization_LBeam ( SensitivityData &SensData) {
 
     for (int i = 0; i < bpointsize; i++)
     {
-      SensData.opt_vel_nlopt[i] = std::min(lambda_f*sf[i] + lambda_g*sg[i],domain_distance_vector[i]);
+      double z_i = std::min( upper_bound_vector[i], lambda_g*sg[i] + lambda_f*sf[i] ) ;
+      z_i = std::max( lower_bound_vector[i],z_i ) ;
+      SensData.opt_vel_nlopt[i] = z_i;
+
       abs_vel = std::max( abs_vel, SensData.opt_vel_nlopt[i] );
     }
 

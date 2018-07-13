@@ -65,7 +65,7 @@ class SensitivityData
 
 void PerformOptimization (SensitivityData &SensData); // optimizes the boundary velocities
 
-void PerformOptimization_LBeam (SensitivityData &SensData); // optimized the boundary velocities for the L beam
+void PerformOptimization_Stress_LBeam (SensitivityData &SensData); // optimized the boundary velocities for the L beam
 
 #include "lsm_opti_3d.cpp"
 
