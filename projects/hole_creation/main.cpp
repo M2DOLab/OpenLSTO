@@ -95,7 +95,7 @@ int main () {
 
  	// Example 2: half of simply supported beam or MBB beam
 
- 	// Left boundary condition
+ // 	// Left boundary condition
 	// vector<double>        coord_left = {0.0, 0.0}, tol_left = {1e-12, 1e10} ;
 	// vector<int>     fixed_nodes_left = fea_mesh.GetNodesByCoordinates (coord_left, tol_left) ;
 	// vector<int> fixed_condition_left = {0} ; // set fixed in only the x direction.
@@ -138,14 +138,14 @@ int main () {
 
 	// Example 2: half of simply supported beam or MBB beam
 
-	// coord = {0.0, nely}, tol = {1e-12, 1e-12} ;
+	// vector<double>   coord = {0.0, nely}, tol = {1e-12, 1e-12} ;
 	// vector<int>      load_node = fea_mesh.GetNodesByCoordinates (coord, tol) ;
 	// vector<int> load_condition = {1} ; // apply load in only the y direction.
 	// vector<int>       load_dof = fea_mesh.dof (load_node, load_condition) ;
 
 	// vector<double> load_val (load_node.size()) ;
 	// for (int i = 0 ; i < load_node.size() ; ++i) {
-	// 	load_val[i] = -10.0; //load component in y direction
+	// 	load_val[i] = -0.5; //load component in y direction
 	// }
 
 	// Add point load to study and assemble load vector {f}:
@@ -186,7 +186,7 @@ int main () {
 		Define LSM parameters:
 	*/
 
-	double    move_limit = 0.5 ;   // Maximum displacement per iteration in units of the mesh spacing.
+	double    move_limit = 0.01 ;   // Maximum displacement per iteration in units of the mesh spacing.
 	double    band_width = 6 ;     // Width of the narrow band.
 	bool is_fixed_domain = false ; // Whether or not the domain boundary is fixed.
 
@@ -320,7 +320,7 @@ int main () {
     double h_bar;  // artifitial height for setting secondary level set function
     bool h_flag = false;  //
     bool isHole = true; // Is hole inseration function active?
-    double newHoleAreaLimit = 0.02;
+    double newHoleAreaLimit = 0.03;
     //
     // Assign desired artificial height
     //
@@ -476,7 +476,7 @@ int main () {
         //                                                                         //
         /////////////////////////////////////////////////////////////////////////////
         std::vector<double> signedDistance_temp(lsm_mesh.nNodes);
-        if (n_iterations > 5) {
+        if ((n_iterations > 5) && ((boundary.area / mesh_area) > 1.05 * max_area)) {
 
         	if (isHole) {
 
@@ -579,7 +579,7 @@ int main () {
 	                //
 	                // Step 6. Copy values of secondary level set function to primaray level set function
 	                //
-	                io.saveLevelSetVTK(9000, level_set) ;
+	                // io.saveLevelSetVTK(9000, level_set) ;
 
 	                if (h_flag) {
 
