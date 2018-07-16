@@ -96,6 +96,10 @@ namespace M2DO_FEA {
 	    // Solve least squares problem.
             double SolveLeastSquares(vector<LeastSquares> least_squares, vector<double> boundary_point, int indicator = 0);
 
+            std::vector<double> mat_vec_mult( std::vector<std::vector<double>> &AtA, std::vector<double> &v_in );
+
+            double vec_vec_mult( std::vector<double> &v_in1, std::vector<double> &v_in2 );
+
             // Least squares information class.
             vector<LeastSquares> least_squares;
 
@@ -137,6 +141,12 @@ namespace M2DO_FEA {
 
             // Stress problem
             void ComputeStressSensitivities (bool time_it, double pnorm);
+
+            // stress problem for 3D
+            void ComputeStressSensitivities3D (bool time_it, double pnorm);
+
+
+
 
 
 	    // Printing

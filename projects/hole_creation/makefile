@@ -14,7 +14,7 @@ M2DO_FEA_OBJ_DIR = ./../../M2DO_FEA/bin/
 FEA_INCL = $(FEA_DIR)/include
 LSM_INCL = $(LSM_DIR)/include
 INCLUDES = -I$(FEA_INCL) -I$(LSM_INCL)
-LIBS = -l lapack -l blas #-l metis -L /usr/local/gfortran/lib -l gfortran #-l ma57 -l metis -l nlopt #-lglpk
+LIBS = #-l lapack -l blas #-l metis -L /usr/local/gfortran/lib -l gfortran #-l ma57 -l metis -l nlopt #-lglpk
 # Write the directory where your M2DO_FEA source files are
 
 SRC_DIR = $(FEA_DIR)/src
@@ -54,7 +54,7 @@ $(M2DO_FEA_OBJ_DIR)/stationary_study.o: $(SRC_DIR)/stationary_study.cpp $(FEA_IN
 # Add your own makes here
 ###############################################################################
 # List of targets for executables you write
-TARGETS = 
+TARGETS =
 main: main.cpp $(M2DO_OBJ)
 	mkdir -p bin
 	$(CC) $(CFLAGS) $(INCLUDES) -o ./bin/a.out main.cpp $(M2DO_OBJ) $(LIBS)

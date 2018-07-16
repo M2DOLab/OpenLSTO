@@ -89,29 +89,29 @@ int main () {
 	// Example 1: cantilever beam
 
 	// Select dof using a box centered at coord of size tol:
- 	// vector<double>    coord = {0.0, 0.0}, tol = {1e-12, 1e10} ;
-	// vector<int> fixed_nodes = fea_mesh.GetNodesByCoordinates (coord, tol) ;
-	// vector<int>   fixed_dof = fea_mesh.dof (fixed_nodes) ; 
+ 	vector<double>    coord = {0.0, 0.0}, tol = {1e-12, 1e10} ;
+	vector<int> fixed_nodes = fea_mesh.GetNodesByCoordinates (coord, tol) ;
+	vector<int>   fixed_dof = fea_mesh.dof (fixed_nodes) ; 
 
  	// Example 2: half of simply supported beam or MBB beam
 
- 	// Left boundary condition
-	vector<double>        coord_left = {0.0, 0.0}, tol_left = {1e-12, 1e10} ;
-	vector<int>     fixed_nodes_left = fea_mesh.GetNodesByCoordinates (coord_left, tol_left) ;
-	vector<int> fixed_condition_left = {0} ; // set fixed in only the x direction.
-	vector<int>       fixed_dof_left = fea_mesh.dof (fixed_nodes_left, fixed_condition_left) ;
+ // 	// Left boundary condition
+	// vector<double>        coord_left = {0.0, 0.0}, tol_left = {1e-12, 1e10} ;
+	// vector<int>     fixed_nodes_left = fea_mesh.GetNodesByCoordinates (coord_left, tol_left) ;
+	// vector<int> fixed_condition_left = {0} ; // set fixed in only the x direction.
+	// vector<int>       fixed_dof_left = fea_mesh.dof (fixed_nodes_left, fixed_condition_left) ;
 
-	// Right boundary condition
-	vector<double>        coord_right = {nelx, 0.0}, tol_right = {1e-12, 1e-12} ;
-	vector<int>     fixed_nodes_right = fea_mesh.GetNodesByCoordinates(coord_right, tol_right) ;
-	vector<int> fixed_condition_right = {1} ; // set fixed in only the y direction.
-	vector<int>       fixed_dof_right = fea_mesh.dof(fixed_nodes_right, fixed_condition_right) ;
+	// // Right boundary condition
+	// vector<double>        coord_right = {nelx, 0.0}, tol_right = {1e-12, 1e-12} ;
+	// vector<int>     fixed_nodes_right = fea_mesh.GetNodesByCoordinates(coord_right, tol_right) ;
+	// vector<int> fixed_condition_right = {1} ; // set fixed in only the y direction.
+	// vector<int>       fixed_dof_right = fea_mesh.dof(fixed_nodes_right, fixed_condition_right) ;
 
-	// Combine dofs into a single vector
-	vector<int> fixed_dof ;
-	fixed_dof.reserve(fixed_dof_left.size() + fixed_dof_right.size()) ;
-	fixed_dof.insert(fixed_dof.end(), fixed_dof_left.begin(), fixed_dof_left.end()) ;
-	fixed_dof.insert(fixed_dof.end(), fixed_dof_right.begin(), fixed_dof_right.end()) ;
+	// // Combine dofs into a single vector
+	// vector<int> fixed_dof ;
+	// fixed_dof.reserve(fixed_dof_left.size() + fixed_dof_right.size()) ;
+	// fixed_dof.insert(fixed_dof.end(), fixed_dof_left.begin(), fixed_dof_left.end()) ;
+	// fixed_dof.insert(fixed_dof.end(), fixed_dof_right.begin(), fixed_dof_right.end()) ;
 
 	// Add boundary conditions to study:
 	// fea_study.AddBoundaryConditions (FEA::DirichletBoundaryConditions (fixed_dof, fea_mesh.n_dof)) ;
@@ -126,26 +126,26 @@ int main () {
 	// Example 1: cantilever beam
 
 	// Select dof using a box centered at coord of size tol:
-	// coord = {1.0*nelx, 0.5*nely}, tol = {1e-12, 1e-12} ;
-	// vector<int> load_node = fea_mesh.GetNodesByCoordinates (coord, tol) ;
-	// vector<int>  load_dof = fea_mesh.dof (load_node) ;
+	coord = {1.0*nelx, 0.5*nely}, tol = {1e-12, 1e-12} ;
+	vector<int> load_node = fea_mesh.GetNodesByCoordinates (coord, tol) ;
+	vector<int>  load_dof = fea_mesh.dof (load_node) ;
 
-	// vector<double> load_val (load_node.size() * 2) ;
-	// for (int i = 0 ; i < load_node.size() ; ++i) {
-	// 	load_val[2*i]   = 0.00 ; // load component in x direction.
-	// 	load_val[2*i+1] = -0.5 ; // load component in y direction.
-	// }
+	vector<double> load_val (load_node.size() * 2) ;
+	for (int i = 0 ; i < load_node.size() ; ++i) {
+		load_val[2*i]   = 0.00 ; // load component in x direction.
+		load_val[2*i+1] = -0.5 ; // load component in y direction.
+	}
 
 	// Example 2: half of simply supported beam or MBB beam
 
-        vector<double> coord = {0.0, nely}, tol = {1e-12, 1e-12} ;
+	vector<double>   coord = {0.0, nely}, tol = {1e-12, 1e-12} ;
 	vector<int>      load_node = fea_mesh.GetNodesByCoordinates (coord, tol) ;
 	vector<int> load_condition = {1} ; // apply load in only the y direction.
 	vector<int>       load_dof = fea_mesh.dof (load_node, load_condition) ;
 
 	vector<double> load_val (load_node.size()) ;
 	for (int i = 0 ; i < load_node.size() ; ++i) {
-		load_val[i] = -10.0; //load component in y direction
+		load_val[i] = -0.5; //load component in y direction
 	}
 
 	// Add point load to study and assemble load vector {f}:
@@ -320,7 +320,7 @@ int main () {
     double h_bar;  // artifitial height for setting secondary level set function
     bool h_flag = false;  //
     bool isHole = true; // Is hole inseration function active?
-    double newHoleAreaLimit = 0.02;
+    double newHoleAreaLimit = 0.03;
     //
     // Assign desired artificial height
     //
@@ -476,7 +476,7 @@ int main () {
         //                                                                         //
         /////////////////////////////////////////////////////////////////////////////
         std::vector<double> signedDistance_temp(lsm_mesh.nNodes);
-        if ((n_iterations > 5) /*&& ((boundary.area / mesh_area) > 1.05 * max_area)*/) {
+        if ((n_iterations > 5) && ((boundary.area / mesh_area) > 1.05 * max_area)) {
 
         	if (isHole) {
 

@@ -137,19 +137,11 @@ int main () {
 		// Create a sensitivity object
 		SensitivityData SensData;
 
-		double MaxVol = 25.0; // in percentage
+		double MaxVol = 30.0; // in percentage
 	  SensData.MaxVol = MaxVol;
 
 	  std::vector<double> UB(2,0);
 	  std::vector<double> LB(2,0);
-
-	  SensData.algo = 0; // 0 for nlopt; 1 for simplex
-
-	  if(SensData.algo == 1)
-	  {
-	      UB[0] = 0.2;
-	      LB[0] = -0.2;
-	  }
 
 		// pass mesh dimensions to sensitivity data
 	  SensData.nx = box_x;
@@ -161,8 +153,8 @@ int main () {
 	  SensData.LB = LB;
 	  SensData.UB = UB;
 
-	  double move_limit = 0.5;
-	  SensData.move_limit = move_limit;
+	  double move_limit = 0.25;
+	  SensData.move_limit = move_limit;  
 
 		/*
 			==========================================================================
@@ -251,19 +243,10 @@ int main () {
 				// Optimize boundary point movement
 				PerformOptimization(SensData);
 
-		    // Resize optimum velocities
+		    // Resize and assign optimum velocities
 		    level_set_3d.opt_vel.resize(level_set_3d.num_boundary_pts);
 
-
-		  	if (SensData.algo == 0)
-		  	{
-		  	  level_set_3d.opt_vel = SensData.opt_vel_nlopt;
-		  	}
-		  	else
-		  	{
-		  	  level_set_3d.opt_vel = SensData.opt_vel_simplex;
-		  	}
-
+		  	level_set_3d.opt_vel = SensData.opt_vel_nlopt;
 
 			  // Extrapolate velocities
 			  level_set_3d.ExtrapolateVelocities();
