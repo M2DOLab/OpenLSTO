@@ -186,7 +186,7 @@ int main () {
 		Define LSM parameters:
 	*/
 
-	double    move_limit = 0.01 ;   // Maximum displacement per iteration in units of the mesh spacing.
+	double    move_limit = 0.5 ;   // Maximum displacement per iteration in units of the mesh spacing.
 	double    band_width = 6 ;     // Width of the narrow band.
 	bool is_fixed_domain = false ; // Whether or not the domain boundary is fixed.
 
