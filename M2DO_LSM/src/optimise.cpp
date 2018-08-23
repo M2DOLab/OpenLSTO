@@ -1,5 +1,3 @@
-
-
   /*
     A class for finding the solution for the optimum velocity vector.
   */
