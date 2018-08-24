@@ -138,15 +138,15 @@ int main () {
 
 	// Example 2: half of simply supported beam or MBB beam
 
-	vector<double>   coord = {0.0, nely}, tol = {1e-12, 1e-12} ;
-	vector<int>      load_node = fea_mesh.GetNodesByCoordinates (coord, tol) ;
-	vector<int> load_condition = {1} ; // apply load in only the y direction.
-	vector<int>       load_dof = fea_mesh.dof (load_node, load_condition) ;
+	//vector<double>   coord = {0.0, nely}, tol = {1e-12, 1e-12} ;
+	//vector<int>      load_node = fea_mesh.GetNodesByCoordinates (coord, tol) ;
+	//vector<int> load_condition = {1} ; // apply load in only the y direction.
+	//vector<int>       load_dof = fea_mesh.dof (load_node, load_condition) ;
 
-	vector<double> load_val (load_node.size()) ;
-	for (int i = 0 ; i < load_node.size() ; ++i) {
-		load_val[i] = -0.5; //load component in y direction
-	}
+	//vector<double> load_val (load_node.size()) ;
+	//for (int i = 0 ; i < load_node.size() ; ++i) {
+	//	load_val[i] = -0.5; //load component in y direction
+	//}
 
 	// Add point load to study and assemble load vector {f}:
 	FEA::PointValues point_load (load_dof, load_val) ;
