@@ -49,7 +49,7 @@ clean existing output files:
 Users of OpenLSTO need a data visualization tool to post-process solution files. The software currently supports .vtk output format natively read by [*ParaView*](https://www.paraview.org/).
 
 ## Licensing
-OpenLSTO is available for download under the [Apache V. 2.0 license](http://www.apache.org/licenses/LICENSE-2.0) license. Please refer to the License page for terms and conditions.
+OpenLSTO is available for download under the [Apache V. 2.0 license](http://www.apache.org/licenses/LICENSE-2.0). Please refer to the License page for terms and conditions.
 
 ## Contributors
 
