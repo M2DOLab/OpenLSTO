@@ -5,7 +5,7 @@ OpenLSTO is an open-source software for level set based structural topology opti
 
 The topology optimization method deals with the problem of determining the optimal distribution inside a design domain in order to obtain the best structural performance. Level Set Method was originally developed as a mathematical tool for tracking the motion of interfaces. Its natural handling of topological changes coupled with a clear and smooth interface representation led to its use for structural topology optimization.
 
-This first full release implements the M2DO lab’s level set topology optimization method to solve the problems of minimizing compliance (maximizing stiffness) under a volume constraint and minimizing stress under a volume constraint in 2D and 3D design domains. A hole nucleation algorithm for the compliance problem is also included. While OpenLSTO has been designed with ease of installation and use in mind, some third-party packages have been used in order for the code to be able to handle more complex problems.
+This first full release implements the M2DO lab’s level set topology optimization method to solve the problems of minimizing compliance (maximizing stiffness) under a volume constraint and minimizing stress under a volume constraint in 2D and 3D design domains. A hole nucleation algorithm for the compliance problem is also included. While OpenLSTO has been designed with ease of installation and use in mind, some third-party packages have been used in order for the code to be able to handle more complex problems. A light version of the code without third-party packages, and with less capabilities, is available [here](https://github.com/M2DOLab/OpenLSTO-lite)
 
 The level-set module of this software, M2DO_LSM, was adapted from code written by [Lester Hedges](https://github.com/lohedges/slsm), which can be found [here](https://github.com/lohedges/slsm).
 
@@ -15,10 +15,8 @@ The level-set module of this software, M2DO_LSM, was adapted from code written b
 To clone the repository to the local machine,(git client) 
 ```git clone https://github.com/M2DOLab/OpenLSTO.git```
 
-<!---
-	The Zip file is also available with the following static link:
-	[Download link]() TODO: include link once added to website
-	--->
+The Zip file is also available with the following static link:
+[Download link](http://m2do.ucsd.edu/static/zip/OpenLSTO-v1.0.zip)
 
 - CLI environment
 
