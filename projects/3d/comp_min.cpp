@@ -25,7 +25,7 @@ int main () {
 		FEA & level set mesh parameters:
 	*/
 
-    const unsigned int nelx = 40, nely = 20, nelz = 20;
+    const unsigned int nelx = 30, nely = 30, nelz = 15;
 
     /*
         Create an FEA mesh object.
@@ -59,7 +59,7 @@ int main () {
 		Add material properties:
 	*/
 
-    fea_mesh.solid_materials.push_back (FEA::SolidMaterial (spacedim, 1.0, 0.3, 1.0)) ;
+    fea_mesh.solid_materials.push_back (FEA::SolidMaterial (spacedim, 20.0, 0.3, 10.0)) ;
 
     /*
         Next we specify that we will undertake a stationary study, which takes the form [K]{u} = {f}.
@@ -82,7 +82,7 @@ int main () {
         Apply load.
     */
 
-    vector<int> load_node = fea_mesh.GetNodesByCoordinates ({nelx, 0.0*nely,0.0*nelz}, {1.0e-12, 1.0e9, 1.e-12}) ;
+    vector<int> load_node = fea_mesh.GetNodesByCoordinates ({nelx, 0.0*nely,1.0*nelz}, {1.0e-12, 1.0e9, 1.5}) ;
     vector<int> load_dof  = fea_mesh.dof (load_node) ;
 
 
@@ -235,7 +235,7 @@ int main () {
 					SensData.vsens[i] = -1 ;
 
 					// assign large values to sensitivities along the boundary where load is applied
-					if(boundary_point[0] >= nelx - 2 && boundary_point[2] <= 2 ) SensData.bsens[i] = 1.0e5 ;
+					if (boundary_point[0] >= nelx - 2 && boundary_point[2] >= nelz - 2) SensData.bsens[i] = 1.0e5;
 				}
 
 				sens.boundary_sensitivities.clear();

@@ -912,7 +912,12 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
       std::vector<double> AtAp(matrix_size,0.0);
       AtAp = mat_vec_mult(AtA,p_inhouse); // AtA*p
 
-      alpha = vec_vec_mult(r_inhouse,r_inhouse)/ vec_vec_mult(p_inhouse, AtAp) ;
+	  auto divisor = vec_vec_mult(p_inhouse, AtAp);
+	  if (divisor == 0)
+	  {
+		  cout << "Division by zero error in SolveLeastSquares in 'sensitivity.cpp' at line: " << __LINE__ + 2 << endl;
+	  }
+      alpha = vec_vec_mult(r_inhouse,r_inhouse)/ divisor ; //DIVISOR IS SOMETIMES 0
 
       for(int i = 0; i < matrix_size; i++) X[i] += alpha*p_inhouse[i];
 
