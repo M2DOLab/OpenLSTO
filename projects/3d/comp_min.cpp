@@ -137,7 +137,7 @@ int main () {
 		// Create a sensitivity object
 		SensitivityData SensData;
 
-		double MaxVol = 30.0; // in percentage
+		double MaxVol = 10.0; // in percentage
 	  SensData.MaxVol = MaxVol;
 
 	  std::vector<double> UB(2,0);
