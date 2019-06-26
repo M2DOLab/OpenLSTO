@@ -1227,9 +1227,7 @@ void LevelSet3D::SolveEikonal(std::vector<int> indices_xyz)
   }
   else
   {
-    //cout << "uh-oh. disc < 0 at " << index_x << " " << index_y << " " << index_z << endl;
-    phi_temp[Grid_pt_to_index_zyx(index_x,index_y,index_z)] = std::min({phix,phiy,phiz}) + 1.0 +  0*0.5745;
-    //phi_temp[Grid_pt_to_index_zyx(index_x,index_y,index_z)] = 0.5*(-b_quad )/a_quad;
+    phi_temp[Grid_pt_to_index_zyx(index_x,index_y,index_z)] = std::min({phix,phiy,phiz}) + 0.75;
   }
 
 
@@ -1442,14 +1440,47 @@ void LevelSet3D::FastMarchingMethod()
   for(int i1 = 0; i1 < indices_considered.size(); i1 ++)
   {
     //solve the eikonal equation at this grid point
-    //cout << indices_considered[i1] << endl;
     SolveEikonal(Index_to_grid_pt_zyx( indices_considered[i1] ));
     phi_considered[i1] = (phi_temp[indices_considered[i1]]);
 
 
   }
 
-}
+  // Step-2
+  // Sort phi_considered and save the indices
+
+  std::size_t n(0);
+  std::vector<int> y(indices_considered.size());
+  std::generate(std::begin(y), std::end(y), [&]{ return n++; });
+
+  std::sort(std::begin(y), std::end(y), [&](int i1, int i2) { return phi_considered[i1] < phi_considered[i2]; } );
+
+  std::sort(std::begin(phi_considered), std::end(phi_considered));
+
+  std::vector<int> indices_considered_dup = indices_considered;
+
+  #pragma omp parallel for
+  for(int i =0; i<  indices_considered.size(); i++ )
+  {
+    indices_considered[y[i]] =  indices_considered_dup[i];
+  }
+
+  // Step-3
+  // Update velocity at this point
+
+  for(int i =0; i<  indices_considered.size(); i++){
+    // Update velocity of this point
+    int x_index = Index_to_grid_pt_zyx( indices_considered[i] )[0];
+    int y_index = Index_to_grid_pt_zyx( indices_considered[i] )[1];
+    int z_index = Index_to_grid_pt_zyx( indices_considered[i] )[2];
+
+    SolveEikonal(Index_to_grid_pt_zyx( indices_considered[i] ));
+    //phi_status[indices_considered[i]] = 1;
+    UpdateVelocity(x_index, y_index, z_index);
+
+  }
+
+  }
 
 void LevelSet3D::UpdateVelocity(int xin, int yin, int zin)
 {
