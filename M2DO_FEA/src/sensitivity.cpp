@@ -195,6 +195,121 @@ void SensitivityAnalysis :: ComputeComplianceSensitivities (bool time_it) {
 
 }
 
+// Thermal compliance sensitivities
+void SensitivityAnalysis :: ComputeThermalComplianceSensitivities (bool time_it, double alpha_delta_t, double area_min) {
+
+  auto t_start = chrono::high_resolution_clock::now() ;
+
+  if (time_it) {
+
+    cout << "\nComputing compliance sensitivities ... " << flush ;
+
+  }
+
+	// DECLARING VARIABLES AND RESIZING VECTORS
+
+	// Scalars and vectors
+	int number_of_elements = study.mesh.solid_elements.size(); // Total number of elements
+	int number_of_gauss_points = pow(order,spacedim); // Total number of gauss points
+	vector<double> eta(spacedim,0), eta_count(spacedim,0); // Vector of gauss points
+	VectorXd element_displacements = VectorXd::Zero(pow(2,spacedim)*spacedim); // Vector of element displacements
+	vector<int> dof; // Vector with dofs
+
+	// Stress*strain matrices.
+  vector<MatrixXd> B;
+  B.resize(number_of_gauss_points);
+  MatrixXd Bu = MatrixXd::Zero(pow(spacedim,spacedim), 1);
+  MatrixXd C = study.mesh.solid_materials[0].C ;
+  MatrixXd stress_strain;
+
+	// Quadrature object.
+  GaussianQuadrature  quadrature (spacedim, order) ;
+
+  // Define thermal strain here
+  Eigen::VectorXd epsilon_thermal;
+  if(spacedim == 2)
+  {
+    epsilon_thermal = Eigen::VectorXd::Zero(4);
+    epsilon_thermal[0] = alpha_delta_t;
+    epsilon_thermal[3] = alpha_delta_t;
+  }
+
+  MatrixXd J_mat =  study.mesh.solid_elements[0].J (eta) ;
+
+  double J_det = J_mat.determinant() ;
+
+	// FUNCTION BODY
+
+  // Computing strain-displacement matrices.
+  for (int j = 0; j < number_of_gauss_points; j++)
+  {
+    // Selecting Gauss points.
+    for (int k = 0 ; k < spacedim; k++)
+    {
+      eta[k]  = quadrature.eta[eta_count[k]];
+    }
+
+    // Strain-displacement matrix at Gauss point.
+    B[j] = study.mesh.solid_elements[0].B(eta);
+
+    // Update eta counter (to select next group of Gauss points).
+    eta_count = quadrature.UpdateEtaCounter(eta_count);
+  }
+
+	// For each element i
+  for (int i = 0; i < number_of_elements; i++)
+  {
+    // If the element is too soft (very small area fraction)
+    if (study.mesh.solid_elements[i].area_fraction < area_min)
+    {
+      // For each gauss point
+      for (int j = 0; j < number_of_gauss_points; j++)
+      {
+        // Sensitivity is not computed and set as zero
+        sensitivities[i].sensitivity_at_gauss_point[j] = 0.0;
+        }
+    }
+    // If the element has significant area fraction
+    else
+    {
+      // For each Gauss point
+      for (int j = 0; j < number_of_gauss_points; j++)
+      {
+        // Element dofs
+        dof = study.mesh.solid_elements[i].dof ;
+
+        // Selecting element displacements.
+        for (int k = 0 ; k < dof.size() ; k++)
+        {
+          element_displacements(k) = study.u(dof[k]) ;
+        }
+
+        // Strain.
+        Bu = B[j]*element_displacements;
+
+        // Sensitivities
+        stress_strain = Bu.transpose()*C*Bu - 2*Bu.transpose()*C*epsilon_thermal;
+
+        sensitivities[i].sensitivity_at_gauss_point[j] =
+        -stress_strain(0,0)*J_det*number_of_gauss_points;
+
+      }
+    }
+  }
+
+    // Objective function (compliance).
+    objective = study.f.dot(study.u);
+
+    auto t_end = chrono::high_resolution_clock::now() ;
+
+    if (time_it) {
+
+        cout << "Done. Time elapsed = " << chrono::duration<double>(t_end-t_start).count() << "\n" << flush ;
+
+    }
+
+}
+
 // STRESS PROBLEM //
 
 // P-norm stress shape sensitivities.
@@ -906,13 +1021,24 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
 
     int max_iter = matrix_size;
 
+    // singularity flag for A'A
+    bool is_singular = 0;
 
     for(int iter = 0; iter < max_iter; iter++)
     {
       std::vector<double> AtAp(matrix_size,0.0);
       AtAp = mat_vec_mult(AtA,p_inhouse); // AtA*p
 
-      alpha = vec_vec_mult(r_inhouse,r_inhouse)/ vec_vec_mult(p_inhouse, AtAp) ;
+      double divisor = vec_vec_mult(p_inhouse, AtAp);
+
+      if(std::abs(divisor) == 0){
+        is_singular = 1; // this means A'A is singular
+        break;
+      }
+
+      alpha = vec_vec_mult(r_inhouse,r_inhouse)/divisor ;
+
+
 
       for(int i = 0; i < matrix_size; i++) X[i] += alpha*p_inhouse[i];
 
@@ -926,7 +1052,7 @@ double SensitivityAnalysis :: SolveLeastSquares(vector<LeastSquares> least_squar
 
     }
 
-    if(isnan(X[0]))
+    if(isnan(X[0]) || is_singular)
     {
       sens = 0.0;
     }
