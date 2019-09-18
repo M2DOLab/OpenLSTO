@@ -33,6 +33,19 @@ SolidMaterial :: SolidMaterial (int spacedim, double E, double nu, double rho, d
 
 		C = h * D * A ;
 
+		// Note: This is the axisymmetric formulation!
+		MatrixXd D_axisymmetric = MatrixXd::Zero (5, 5) ;
+		
+		D_axisymmetric << 1-nu,     0, 		 	0,           nu, 	nu,
+							 0, 	(1-2*nu)/2, (1-2*nu)/2,  0, 	 0,
+							 0, 	(1-2*nu)/2, (1-2*nu)/2,  0,  	 0,
+						    nu,		0,       	0,  		 1-nu,   nu,
+					        nu, 	0,       	0,  		 nu,     1-nu;
+		
+		D_axisymmetric *= E / ((1 + nu)*(1-2*nu)) ;
+
+		C_axisymmetric = h * D_axisymmetric ;
+
 	}
 
 	else if (spacedim == 3) {

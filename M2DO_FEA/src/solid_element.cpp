@@ -173,6 +173,55 @@ MatrixXd SolidElement :: B_int () {
 
 }
 
+MatrixXd SolidElement :: B_axisymmetric (vector<double> & eta, double radius) {
+
+	VectorXd shape_grad_j, shape_grad_j_full ;
+
+	/*
+		grad(u(x)) = [B] * {u}
+		So we aim to find B here.
+	*/
+
+	MatrixXd B_mat = MatrixXd::Zero(spacedim * spacedim + 1, pow(2, spacedim) * spacedim) ;
+
+	int shape_j = 0, dim_j = 0 ;
+
+	MatrixXd J_mat = J (eta) ;
+	MatrixXd J_inv = J_mat.inverse() ;
+
+	// Build the B matrix at the given eta point:
+	for (int j = 0 ; j < spacedim * pow(2, spacedim) ; ++j) {
+
+		shape_grad_j      = J_inv * linear_shape_function.GetShapeFunctionGradientsVector(shape_j, eta) ;
+		shape_grad_j_full = linear_shape_function.GetShapeFunctionGradientsFullVector(shape_grad_j, dim_j) ;
+
+		for (int jj = 0 ; jj < shape_grad_j_full.size() ; ++ jj) {
+
+			B_mat.col(j)(jj) = shape_grad_j_full(jj) ;
+			
+		}
+
+		if (dim_j < spacedim-1) {
+			dim_j = dim_j + 1 ;
+		}
+
+		else {
+			dim_j = 0 ;
+			shape_j = shape_j + 1 ;
+		}
+
+	} 
+	VectorXd v = linear_shape_function.GetShapeFunctionValuesVector(eta) ;
+	
+	B_mat(4,1) = v[0]/radius ;
+	B_mat(4,3) = v[1]/radius ;
+	B_mat(4,5) = v[2]/radius ;
+	B_mat(4,7) = v[3]/radius ;
+
+	return B_mat ;
+
+}
+
 MatrixXd SolidElement :: K () {
 
 	MatrixXd J_mat, J_inv, K_mat = MatrixXd::Zero (pow(2, spacedim) * spacedim, pow(2, spacedim) * spacedim) ;
@@ -336,6 +385,156 @@ MatrixXd SolidElement :: K_NodalProperties (VectorXd & nodal_properties, double 
 	} // for k (gauss points).
 
 	return K_mat ;
+
+}
+
+MatrixXd SolidElement :: K_axisymmetric (double radius, int material_id) {
+
+	MatrixXd J_mat, J_inv ;	
+	MatrixXd K_mat = MatrixXd::Zero (pow(2, spacedim) * spacedim, pow(2, spacedim) * spacedim) ;
+	MatrixXd C = mesh.solid_materials[0].C_axisymmetric ;
+
+	VectorXd shape_grad_j, shape_grad_j_full ;
+	
+	double w ;
+	double pi = 3.1415926 ;
+	vector<double> eta (spacedim, 0), eta_count (spacedim, 0) ;
+
+	/*
+		grad(u(x)) = [B] * {u}
+	*/
+
+	MatrixXd B_mat = MatrixXd::Zero (spacedim * spacedim + 1, pow(2, spacedim) * spacedim) ;
+
+	int n_gauss = pow (order, spacedim) ;
+
+	for (int k = 0 ; k < n_gauss ; ++k) {
+
+		int shape_j = 0, dim_j = 0 ;
+
+		/*
+			The first gauss point is located at eta = [quadrature.eta[0], quadrature.eta[0], ...].
+			Since eta_count was initialized with zeros in all dimensions, we don't need to do
+			anything fancy yet; just set eta[l] = quadrature.eta[eta_count[l]], etc. Same goes
+			for the weighting w.
+		*/
+
+		w = 1.0 ;
+
+		for (int l = 0 ; l < spacedim ; ++l) {
+
+			eta[l]  = quadrature.eta[eta_count[l]] ;
+			w      *= quadrature.w[eta_count[l]] ;
+
+		}
+
+		J_mat = J (eta) ;
+		J_inv = J_mat.inverse() ;
+
+		/*
+			Build the B matrix at this gauss point:
+		*/
+
+		for (int j = 0 ; j < spacedim * pow(2, spacedim) ; ++j) {
+
+			shape_grad_j      = J_inv * linear_shape_function.GetShapeFunctionGradientsVector(shape_j, eta) ;
+			shape_grad_j_full = linear_shape_function.GetShapeFunctionGradientsFullVector(shape_grad_j, dim_j) ;
+
+			for (int jj = 0 ; jj < shape_grad_j_full.size() ; ++ jj){
+
+				B_mat.col(j)(jj) = shape_grad_j_full(jj) ;
+			
+			}
+
+			if (dim_j < spacedim-1) {
+				dim_j = dim_j + 1 ;
+			}
+
+			else {
+				dim_j = 0 ;
+				shape_j = shape_j + 1 ;
+			}
+
+		} // for j (columns in B).
+
+		VectorXd v = linear_shape_function.GetShapeFunctionValuesVector(eta) ;
+
+		B_mat(4,1) = v[0]/radius ;
+		B_mat(4,3) = v[1]/radius ;
+		B_mat(4,5) = v[2]/radius ;
+		B_mat(4,7) = v[3]/radius ;
+
+		eta_count = quadrature.UpdateEtaCounter(eta_count) ;
+
+		/*
+			Add to the K matrix:
+		*/
+
+		K_mat += (2*pi*radius) * B_mat.transpose() * C * B_mat * w * J_mat.determinant() ;
+
+	} // for k (gauss points).
+
+	return K_mat ;
+
+}
+
+VectorXd SolidElement :: FSelfWeight (double gravity, VectorXd direction) {
+
+	MatrixXd J_mat, J_inv ; 
+	MatrixXd F_sw = MatrixXd::Zero (pow(2, spacedim) * spacedim, 1) ;
+	
+	double rho = mesh.solid_materials[material_id].rho ;
+
+	double w ;
+	vector<double> eta (spacedim, 0), eta_count (spacedim, 0) ;
+
+	int n_gauss = pow (order, spacedim) ;
+
+	for (int k = 0 ; k < n_gauss ; ++k) {
+
+		int shape_j = 0, dim_j = 0 ;
+
+		/*
+			The first gauss point is located at eta = [quadrature.eta[0], quadrature.eta[0], ...].
+			Since eta_count was initialized with zeros in all dimensions, we don't need to do
+			anything fancy yet; just set eta[l] = quadrature.eta[eta_count[l]], etc. Same goes
+			for the weighting w.
+		*/
+
+		w = 1.0 ;
+
+		for (int l = 0 ; l < spacedim ; ++l) {
+
+			eta[l]  = quadrature.eta[eta_count[l]] ;
+			w      *= quadrature.w[eta_count[l]] ;
+
+		}
+
+		J_mat = J (eta) ;
+		J_inv = J_mat.inverse() ;
+
+		/*
+			Build the H matrix at this gauss point: (2D only)
+		*/
+
+		MatrixXd H_mat = MatrixXd::Zero (2, 8) ;
+		VectorXd v = linear_shape_function.GetShapeFunctionValuesVector(eta) ;
+
+		H_mat << v[0], 0.0, v[1], 0.0, v[2], 0.0, v[3], 0.0,
+				  0.0, v[0], 0.0, v[1], 0.0, v[2], 0.0, v[3] ;
+
+		// Update gauss point.
+		eta_count = quadrature.UpdateEtaCounter(eta_count) ;
+
+		/*
+			Add to the F matrix:
+		*/
+
+		F_sw += rho * gravity * H_mat.transpose() * direction * w * J_mat.determinant() ;
+
+	} // for k (gauss points).
+
+	return F_sw ;
 
 }
 

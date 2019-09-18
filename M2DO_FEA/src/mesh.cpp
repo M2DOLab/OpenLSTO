@@ -657,7 +657,7 @@ void Mesh :: WriteElementTypesTXT(int datapoint, int nelx, int nely) {
     num << std::right << datapoint;
 
     fileName.str("");
-    fileName << "Output/element_types_" << num.str() << ".txt";
+    fileName << "element_types.txt";
 
     FILE *pFile;
 
@@ -676,6 +676,62 @@ void Mesh :: WriteElementTypesTXT(int datapoint, int nelx, int nely) {
     }
 
     fclose(pFile);
+}
+
+void Mesh :: ReadNeighboursTXT(int nelx, int nely) {
+
+	// Total number of elements
+	int nel = solid_elements.size();
+
+	// Number of neighbours per element
+	vector<int> neighbours_per_element;
+	neighbours_per_element.resize(nel);
+
+	// Resizing everything to 4
+	for (int i = 0; i < neighbours_per_element.size(); ++i)
+	{
+		neighbours_per_element[i] = 4;	
+	}
+
+	// Resizing corner elements
+	neighbours_per_element[0] = 2;
+	neighbours_per_element[nelx-1] = 2;
+	neighbours_per_element[nel-nelx] = 2;
+	neighbours_per_element[nel-1] = 2;
+
+	// Resizing bottom and top edge elements
+	for (int i = 1; i < nelx-1; ++i)
+	{
+		neighbours_per_element[i] = 3;
+		neighbours_per_element[nel-nelx+i] = 3;
+	}
+
+	// Resizing left and right edge elements
+	for (int i = 1; i < nely-1; ++i)
+	{
+		neighbours_per_element[i*nelx] = 3;
+		neighbours_per_element[(i+1)*nelx-1] = 3;
+	}
+
+	// Read element neighbours.
+    vector<vector<int> > neighbours;
+
+    // Resize neighbours
+    neighbours.resize(nel);
+
+    std::ifstream file("element_neighbours.txt");
+
+    for (int i = 0; i < neighbours.size(); ++i)
+    {
+        neighbours[i].resize(neighbours_per_element[i]);
+        for (int j = 0; j < neighbours_per_element[i]; ++j)
+        {
+            file >> neighbours[i][j];
+        }
+    }
+
+    // Assign to mesh class.
+    element_neighbours = neighbours;
 }
 
 void Mesh :: saveNodalPropertiesVTK(const unsigned int& datapoint, int nelx, int nely) const

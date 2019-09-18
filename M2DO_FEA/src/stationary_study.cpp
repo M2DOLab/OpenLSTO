@@ -424,3 +424,84 @@ void StationaryStudy :: AssembleF_i (MatrixXd lambda_i, vector<int> dof, bool ti
 	}
 
 }
+
+void StationaryStudy :: AddPressureFieldLoad (bool time_it, vector<vector<double> > pressure_segments, double scale) {
+
+	auto t_start = chrono::high_resolution_clock::now() ;
+
+	if (time_it) {
+
+		cout << "\nAssembling {f} from point values ... " << flush ;
+
+	}
+
+	int reduced_dof_i ;
+
+	// Mesh parameters.
+	double elsize = 1.0; // Always one in this LSM.
+
+	// Loop through all pressure segments.
+	for (int i = 0; i < pressure_segments.size(); i++)
+	{
+		// Computing geometric parameters.
+		double dx = (pressure_segments[i][2]-pressure_segments[i][0]);
+		double dy = (pressure_segments[i][3]-pressure_segments[i][1]);
+		double xmean = dx/2;
+		double ymean = dy/2;
+		MatrixXd Phi = MatrixXd::Zero (2, 1) ;
+
+	    	// Use normal vector from level set.
+	    	Phi << pressure_segments[i][6],
+	    		   pressure_segments[i][7];
+
+		// Jacobian
+		double jacobian = sqrt(pow(xmean,2)+pow(ymean,2));
+		
+		// Computing modified Gauss points (using one point integration, gi = 0, wi = 2);
+		vector<double> g_mod; g_mod.resize(2);
+
+		// Qsi = (x-xc)/a. Hard-coded for gi = 0;
+		g_mod[0] = (pressure_segments[i][2]+pressure_segments[i][0])/2;
+		g_mod[0] -= mesh.solid_elements[int(pressure_segments[i][5])].centroid[0]*scale;
+		g_mod[0] /= 0.5*elsize;
+		// Eta = (y-yc)/b.
+		g_mod[1] = (pressure_segments[i][3]+pressure_segments[i][1])/2;
+		g_mod[1] -= mesh.solid_elements[int(pressure_segments[i][5])].centroid[1]*scale;
+		g_mod[1] /= 0.5*elsize;
+
+		// Shape functions.
+		MatrixXd N_shape_A = MatrixXd::Zero (2, 8) ;
+	    N_shape_A << 0.25*(1-g_mod[0])*(1-g_mod[1]), 0, 0.25*(1+g_mod[0])*(1-g_mod[1]), 0, 0.25*(1+g_mod[0])*(1+g_mod[1]), 0, 0.25*(1-g_mod[0])*(1+g_mod[1]), 0,
+		             0, 0.25*(1-g_mod[0])*(1-g_mod[1]), 0, 0.25*(1+g_mod[0])*(1-g_mod[1]), 0, 0.25*(1+g_mod[0])*(1+g_mod[1]), 0, 0.25*(1-g_mod[0])*(1+g_mod[1]);
+
+		// Directional (coupling) matrix. = wi*NA^T*Phi*J. Hard-coded for wi = 2;
+		VectorXd Le = 2*N_shape_A.transpose()*Phi*jacobian;
+
+		// Assemble pressure vector!!
+		int reduced_dof;
+
+		// Element DOF's.
+		vector<int> dof = mesh.solid_elements[int(pressure_segments[i][5])].dof ;
+
+		for (int j = 0 ; j < dof.size() ; ++j)
+		{
+			f (dof[j]) += Le(j)*pressure_segments[i][8]/scale ;
+
+			if (dirichlet_boundary_conditions.dof_to_reduced_dof_map[ dof[j] ] > 0)
+			{
+				reduced_dof_i = dirichlet_boundary_conditions.dof_to_reduced_dof_map[ dof[j] ] ;
+
+				f_reduced (reduced_dof_i) += Le(j)*pressure_segments[i][8]/scale;
+			}
+		}
+	}
+
+	auto t_end = chrono::high_resolution_clock::now() ;
+
+	if (time_it) {
+
+		cout << "Done. Time elapsed = " << chrono::duration<double>(t_end-t_start).count() << "\n" << flush ;
+
+	}
+
+}
