@@ -37,7 +37,7 @@ namespace M2DO_FEA {
 			double alphaT ;	// Coefficient of thermal expansion.
 			double h   ; 	// Thickness
 
-			MatrixXd C, V ;
+			MatrixXd C, V, C_axisymmetric ;
 			
 			// Methods:
 			SolidMaterial (int spacedim, double E, double nu, double rho = 0.0, double alphaT = 0.0, double h = 1.00) ;

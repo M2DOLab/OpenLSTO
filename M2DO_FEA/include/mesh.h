@@ -85,6 +85,8 @@ namespace M2DO_FEA {
 			void WriteAreaFractionsTXT (int, int, int) ;
 			// Write element types.
 			void WriteElementTypesTXT (int, int, int) ;
+			// Read element neighbours.
+			void ReadNeighboursTXT(int, int);
 
 			// Write nodal material properties.
 			void saveNodalPropertiesVTK(const unsigned int&, int, int) const;

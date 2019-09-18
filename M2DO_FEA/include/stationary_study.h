@@ -101,7 +101,7 @@ namespace M2DO_FEA {
 			void AssembleKcKconvWithAreaFractions (const std::vector<double> &, const MatrixXd & , const VectorXd &) ; // input: convection coeff, average velocity, pressure
 			void SolveAsymmetricPoissonWithHSLMA57(bool use_metis, bool print_output, bool time_it) ; // Solves [K] * {u_reduced} = {f_reduced}
 
-
+			void AddPressureFieldLoad (bool time_it, vector<vector<double> > pressure_segments, double scale) ; // Add pressure load
 
 
 	} ;

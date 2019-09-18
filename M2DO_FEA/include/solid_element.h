@@ -47,6 +47,7 @@ namespace M2DO_FEA {
 			int material_id ;
 			double area_fraction ;
 			vector<double> centroid ;
+			double radius ;
 
 			LinearShapeFunction linear_shape_function ;
 			GaussianQuadrature  quadrature ;
@@ -58,11 +59,14 @@ namespace M2DO_FEA {
 			MatrixXd J (vector<double> & eta) ;
 			MatrixXd B (vector<double> & eta) ;
 			MatrixXd B_int () ;
+			MatrixXd B_axisymmetric (vector<double> & eta, double radius) ;	// B matrix for axisymmetric case
 			MatrixXd K () ;
+			MatrixXd K_axisymmetric (double radius, int material_id) ;	// K matrix for axisymmetric case
 			MatrixXd K_NodalProperties (VectorXd &, double) ; // K computed with nodal material interpolated properties (input = nodal properties, minimum density or minimum area fraction).
 			vector<MatrixXd> dKdz (double) ; // derivative of K computed with nodal material interpolated properties (input = minimum density or minimum area fraction)..
 			MatrixXd M () ;
 			MatrixXd FThermalExpansion (double) ;
+			VectorXd FSelfWeight (double, VectorXd) ;
 
 			//! \brief
 			//		Computes thermal load on a solid element based on an input
@@ -75,7 +79,6 @@ namespace M2DO_FEA {
 			MatrixXd PhysicalGaussPoissCoordinates () ;
 
 	} ;
-
 
 }
 
