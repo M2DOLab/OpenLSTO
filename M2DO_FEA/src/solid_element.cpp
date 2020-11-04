@@ -679,7 +679,7 @@ MatrixXd SolidElement :: M () {
 			Add to the K matrix:
 		*/
 
-		M_mat += rho * H_mat.transpose() * H_mat * w * J_mat.determinant() ;
+		M_mat += h * rho * H_mat.transpose() * H_mat * w * J_mat.determinant() ;
 
 	} // for k (gauss points).
 
