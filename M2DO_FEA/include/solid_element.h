@@ -48,6 +48,7 @@ namespace M2DO_FEA {
 			double area_fraction ;
 			vector<double> centroid ;
 			double radius ;
+			double h = 1.0 ; // Element thickness
 
 			LinearShapeFunction linear_shape_function ;
 			GaussianQuadrature  quadrature ;
