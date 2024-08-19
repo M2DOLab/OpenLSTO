@@ -81,6 +81,7 @@ mpVector& mpVector::operator = (const mpVector& other)
   x = other.x;
   y = other.y;
   z = other.z;
+  return *this;
 }
 
 mpVector::operator mp4Vector() const
