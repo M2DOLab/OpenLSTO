@@ -9,6 +9,17 @@ This first full release implements the M2DO lab’s level set topology optimizat
 
 The level-set module of this software, M2DO_LSM, was adapted from code written by [Lester Hedges](https://github.com/lohedges/slsm), which can be found [here](https://github.com/lohedges/slsm).
 
+## Julia port (TopOpt.jl)
+
+A self-contained Julia translation of OpenLSTO's level-set topology optimization
+method is available as part of [TopOpt.jl](https://github.com/JuliaTopOpt/TopOpt.jl).
+It implements the 2D compliance- and stress-minimization workflows (with hole
+nucleation) and the 3D compliance solver. See the
+[API reference](https://juliatopopt.github.io/TopOpt.jl/stable/reference/OpenLSTO/)
+and the
+[level-set tutorial](https://juliatopopt.github.io/TopOpt.jl/stable/tutorials/levelset.html).
+This port was vibe coded by [Mohamed Tarek](https://github.com/mohdibntarek).
+
 ## Installation
 -  Download
 
